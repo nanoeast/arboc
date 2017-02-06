@@ -5,13 +5,15 @@ import nanoeast.snake.logic.Facing;
 import nanoeast.snake.screens.BoardDisplayScreen;
 
 import com.badlogic.gdx.Game;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.assets.AssetManager;
 
 public class EngineHeart extends Game {
     
-    Screen currentScreen;
     public AssetManager assetManager;
+    public InputMultiplexer inputMultiplexer;
     public Board board;
     public int width, height;
     
@@ -23,16 +25,19 @@ public class EngineHeart extends Game {
     
     public EngineHeart(int boardWidth, int boardHeight) {
       this.assetManager = new AssetManager();
+      this.inputMultiplexer = new InputMultiplexer();
+      
       this.board = new Board(boardWidth, boardHeight);
-      this.board.initializeSnake(0, 0, 4, Facing.RIGHT);
+      this.board.createSnake(0, 0, 4, Facing.RIGHT);
+      
     }
 
     @Override
     public void create() {
         // TODO Auto-generated method stub
-        this.currentScreen = new BoardDisplayScreen(this);
-        this.setScreen(this.currentScreen);
-        //this.currentScreen.show();
+        Gdx.input.setInputProcessor(this.inputMultiplexer);
+        Screen currentScreen = new BoardDisplayScreen(this);
+        this.setScreen(currentScreen);
     }
 
 }

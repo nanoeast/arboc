@@ -30,7 +30,6 @@ public enum Facing {
     }
     ,
     RIGHT {
-
         @Override
         void setNext(Pair<Integer, Integer> thenPair, Pair<Integer, Integer> nowPair) {
             nowPair.item1 = thenPair.item1 + 1;

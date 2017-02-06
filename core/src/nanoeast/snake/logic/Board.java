@@ -1,13 +1,15 @@
 package nanoeast.snake.logic;
 
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Board {
+  
+  public static final int INVALID_CELL_INDEX = -1;
+  
     
     public int width, height;
-    public int[][] cellsAsArray;
-    public Set<Integer> cellsAsSet;
+    public List<Integer> snake;
     public Facing facing;
     public int length;
 
@@ -15,58 +17,73 @@ public class Board {
         checkMinimumWidthAndHeight(width, height);
         this.width = width;
         this.height = height;
-        this.initializeArrayFromWidthAndHeight();
+        this.clearSnake();
     }
     
     public void clearBoard() {
-      this.initializeArrayFromWidthAndHeight();
-      for (int[] row : this.cellsAsArray) {
-        for (int i = 0; i < row.length; i++) {
-          row[i] = 0;
-        }
-      }
-      this.initializeCellsAsSet();
-      this.cellsAsSet.clear();
+      this.clearSnake();
     }
     
-    private void initializeCellsAsSet() {
-      if (this.cellsAsSet == null) {
-        this.cellsAsSet = new TreeSet<>();
+    private void clearSnake() {
+      if (this.snake == null) {
+        this.snake = new ArrayList<>();
       }
+      this.snake.clear();
     }
 
     private void checkMinimumWidthAndHeight(int width, int height) {
-        if (width < 4) {
+        if (width < 2) {
             throw new IllegalArgumentException("Insufficient width of " + width);
         }
-        if (height < 1) {
+        if (height < 2) {
             throw new IllegalArgumentException("Insufficient height of " + height);
         }
     }
 
-    private void initializeArrayFromWidthAndHeight() {
-        this.cellsAsArray = new int[this.height][];
-        for (int i = 0; i < this.height; i++) {
-          this.cellsAsArray[i] = new int[this.width];
-        };
-    }
-    
-    public void initializeSnake(int x, int y, int length, Facing facing) {
+    public void createSnake(int x, int y, int length, Facing facing) {
+      if (length < 2) {
+        throw new IllegalArgumentException("Insufficient snake length");
+      }
       this.facing = facing;
       this.length = length;
       Pair<Integer, Integer> origin = new Pair<>(x, y);
       for (int i = 0; i < length; i++) {
-        int segment = i + 1;
-        this.cellsAsArray[origin.item1][origin.item2] = segment;
-        this.cellsAsSet.add(this.getCoord(origin.item1, origin.item2));
+        this.snake.add(0, CoordinateUtils.getCellIndexFromCoordinates(this.width, origin.item1, origin.item2));
         facing.setNext(origin, origin);
       }
     }
     
-    private int getCoord(int x, int y) {
-      return (this.width * y) + x;
+    
+    /**
+     * Returns the next cell index (from 0 to (width * height) - 1) if there is a valid next move.
+     * Returns {@link #INVALID_CELL_INDEX} if the next move is out of bounds.
+     */
+    public int hasNextHead() {
+      Pair<Integer, Integer> previous = new Pair<>(0, 0);
+      Pair<Integer, Integer> next = new Pair<>(0, 0);
+      Integer head = this.snake.iterator().next();
+      CoordinateUtils.setCoordinatesFromCellIndex(this.width, head, previous);
+      this.facing.setNext(previous, next);
+      if (next.item1 < 0 || next.item1 >= this.width) {
+        return INVALID_CELL_INDEX;
+      }
+      if (next.item2 < 0 || next.item2 >= this.height) {
+        return INVALID_CELL_INDEX;
+      }
+      return CoordinateUtils.getCellIndexFromCoordinates(this.width, next.item1, next.item2);
     }
     
-    
+    /**
+     * Sets the next head of the snake.  Populate by invoking
+     * <pre>
+     * {@code
+     *  nextHead(hasNextHead());
+     * }
+     * </pre>
+     */
+    public void nextHead(int cellIndex) {
+      this.snake.add(0, cellIndex);
+      this.snake.remove(this.snake.size() - 1);
+    }
     
 }

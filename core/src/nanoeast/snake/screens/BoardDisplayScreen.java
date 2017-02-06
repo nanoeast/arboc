@@ -2,10 +2,15 @@ package nanoeast.snake.screens;
 
 import nanoeast.snake.EngineHeart;
 import nanoeast.snake.logic.Board;
+import nanoeast.snake.logic.CoordinateUtils;
+import nanoeast.snake.logic.Pair;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.InputAdapter;
+import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Camera;
+import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -24,6 +29,7 @@ public class BoardDisplayScreen extends ScreenAdapter {
     public Camera camera;
     private int cellSize, topPadding, leftPadding;
     
+    private InputProcessor inputProcessor;
   
     public BoardDisplayScreen(EngineHeart engineHeart) {
       this.engineHeart = engineHeart;
@@ -45,8 +51,10 @@ public class BoardDisplayScreen extends ScreenAdapter {
       this.topPadding = (graphicsHeight - (cellsDown * this.cellSize)) / 2;
       this.leftPadding = (graphicsWidth - (cellsAcross * this.cellSize)) / 2;
       
-      //boolean useYDownCoordinateSystem = true;
-      this.camera = new OrthographicCamera(graphicsWidth, graphicsHeight);
+      boolean useYDownCoordinateSystem = true;
+      OrthographicCamera orthographicCamera = new OrthographicCamera(graphicsWidth, graphicsHeight);
+      orthographicCamera.setToOrtho(useYDownCoordinateSystem);
+      this.camera = orthographicCamera;
       float cameraX = this.camera.viewportWidth / 2.0f;
       float cameraY = this.camera.viewportHeight / 2.0f;
       float cameraZ = 0.0f;
@@ -54,6 +62,8 @@ public class BoardDisplayScreen extends ScreenAdapter {
       this.camera.update();
       
       this.spriteBatch = new SpriteBatch();
+      
+      this.inputProcessor = new BasicInput(this.engineHeart.board);
     }
     
     @Override
@@ -67,22 +77,48 @@ public class BoardDisplayScreen extends ScreenAdapter {
         return;
       }
       
+      doOutput();
+    }
+    
+    
+    
+    @Override
+    public void show() {
+      super.show();
+      this.engineHeart.inputMultiplexer.addProcessor(this.inputProcessor);
+    }
+    
+    @Override
+    public void dispose() {
+    // TODO Auto-generated method stub
+    super.dispose();
+    this.engineHeart.inputMultiplexer.removeProcessor(this.inputProcessor);
+    }
+    
+    
+    private void doOutput() {
+      Gdx.gl.glClearColor(0, 0, 0, 1); // clear to black
+      Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+      
       this.camera.update();
       this.spriteBatch.setProjectionMatrix(this.camera.combined);
-      
       this.spriteBatch.begin();
       this.renderBoard(this.engineHeart.board);
       this.spriteBatch.end();
     }
 
     private void renderBoard(Board board) {
-      for (int row = 0; row < board.height; row++) {
-        for (int col = 0; col < board.width; col++) {
-          int cellPositionX = this.leftPadding + ((col + 1) * this.cellSize);
-          int cellPositionY = this.topPadding + ((row + 1) * this.cellSize);
-          this.spriteBatch.draw(this.headTextureRegion, cellPositionX, cellPositionY, this.cellSize, this.cellSize);
-        }
-      }
+      Pair<Integer, Integer> cellCoordinates = new Pair<>(0, 0);
+      System.out.println("snake: " + this.engineHeart.board.snake.toString());
+      for (int i = 0; i < this.engineHeart.board.snake.size(); i++) {
+        Integer cellIndex = this.engineHeart.board.snake.get(i);
+        System.out.println("cellindex: " + cellIndex + " i: " + i);
+        CoordinateUtils.setCoordinatesFromCellIndex(this.engineHeart.board.width, cellIndex, cellCoordinates);
+        TextureRegion snakeTextureRegion = (i == 0) ? this.headTextureRegion : this.tailTextureRegion;
+        int cellPositionX = this.leftPadding + (this.cellSize * cellCoordinates.item1);
+        int cellPositionY = this.topPadding + (this.cellSize * cellCoordinates.item2);
+        this.spriteBatch.draw(snakeTextureRegion, cellPositionX, cellPositionY, this.cellSize, this.cellSize);
+      }  
     }
 
     private void ensureTextures() {
@@ -113,4 +149,19 @@ public class BoardDisplayScreen extends ScreenAdapter {
       this.texturesLoaded = true;
     }
 
+}
+
+class BasicInput extends InputAdapter {
+  Board board;
+  
+  public BasicInput(Board board) {
+    this.board = board;
+  }
+  @Override
+  public boolean keyDown(int keycode) {
+    // TODO Auto-generated method stub
+    System.out.println("keycode: " + keycode);
+    board.nextHead(board.hasNextHead());
+    return true;
+  }
 }

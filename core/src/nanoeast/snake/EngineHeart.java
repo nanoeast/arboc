@@ -1,11 +1,12 @@
 package nanoeast.snake;
 
 import nanoeast.snake.logic.Board;
+import nanoeast.snake.logic.Facing;
+import nanoeast.snake.screens.BoardDisplayScreen;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.assets.AssetManager;
-import com.badlogic.gdx.graphics.Texture;
 
 public class EngineHeart extends Game {
     
@@ -22,14 +23,16 @@ public class EngineHeart extends Game {
     
     public EngineHeart(int boardWidth, int boardHeight) {
       this.assetManager = new AssetManager();
-      this.board = new Board(width, height);
+      this.board = new Board(boardWidth, boardHeight);
+      this.board.initializeSnake(0, 0, 4, Facing.RIGHT);
     }
 
     @Override
     public void create() {
         // TODO Auto-generated method stub
-        this.currentScreen = null;
-        this.currentScreen.show();
+        this.currentScreen = new BoardDisplayScreen(this);
+        this.setScreen(this.currentScreen);
+        //this.currentScreen.show();
     }
 
 }

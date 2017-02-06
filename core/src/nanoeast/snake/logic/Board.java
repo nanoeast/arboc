@@ -9,6 +9,7 @@ public class Board {
     public int[][] cellsAsArray;
     public Set<Integer> cellsAsSet;
     public Facing facing;
+    public int length;
 
     public Board(int width, int height) {
         checkMinimumWidthAndHeight(width, height);
@@ -36,10 +37,10 @@ public class Board {
 
     private void checkMinimumWidthAndHeight(int width, int height) {
         if (width < 4) {
-            throw new IllegalArgumentException("Insufficient width");
+            throw new IllegalArgumentException("Insufficient width of " + width);
         }
         if (height < 1) {
-            throw new IllegalArgumentException("Insufficient height");
+            throw new IllegalArgumentException("Insufficient height of " + height);
         }
     }
 
@@ -51,6 +52,8 @@ public class Board {
     }
     
     public void initializeSnake(int x, int y, int length, Facing facing) {
+      this.facing = facing;
+      this.length = length;
       Pair<Integer, Integer> origin = new Pair<>(x, y);
       for (int i = 0; i < length; i++) {
         int segment = i + 1;
@@ -61,7 +64,7 @@ public class Board {
     }
     
     private int getCoord(int x, int y) {
-      return (this.width * y) + this.x;
+      return (this.width * y) + x;
     }
     
     

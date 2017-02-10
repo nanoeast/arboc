@@ -1,11 +1,18 @@
 package nanoeast.snake.screens;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import nanoeast.snake.EngineHeart;
+import nanoeast.snake.events.Event;
+import nanoeast.snake.events.EventHandler;
 import nanoeast.snake.logic.Board;
 import nanoeast.snake.logic.CoordinateUtils;
+import nanoeast.snake.logic.Facing;
 import nanoeast.snake.logic.Pair;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.ScreenAdapter;
@@ -21,6 +28,22 @@ public class BoardDisplayScreen extends ScreenAdapter {
     private static final String ASSET_PATH_TAIL = "images/squareyellow.png";
     private static final String ASSET_PATH_HEAD = "images/squarered.png";
     private static final String ASSET_PATH_TARGET = "images/squareblue.png";
+
+    public static final Map<String, Object> PROPERTIES_FACE_UP = new HashMap<String, Object>();
+    public static final Map<String, Object> PROPERTIES_FACE_DOWN = new HashMap<String, Object>();
+    public static final Map<String, Object> PROPERTIES_FACE_LEFT = new HashMap<String, Object>();
+    public static final Map<String, Object> PROPERTIES_FACE_RIGHT = new HashMap<String, Object>();
+
+    public static final String FACING_EVENT_PROPERTY = "facing";
+    public static final String FACE_EVENT_TYPE = "faceEvent";
+    
+    static {
+      PROPERTIES_FACE_UP.put(BoardDisplayScreen.FACING_EVENT_PROPERTY, Facing.UP);
+      PROPERTIES_FACE_DOWN.put(BoardDisplayScreen.FACING_EVENT_PROPERTY, Facing.DOWN);
+      PROPERTIES_FACE_LEFT.put(BoardDisplayScreen.FACING_EVENT_PROPERTY, Facing.LEFT);
+      PROPERTIES_FACE_RIGHT.put(BoardDisplayScreen.FACING_EVENT_PROPERTY, Facing.RIGHT);
+    }
+    
     public EngineHeart engineHeart;
     public SpriteBatch spriteBatch;
     private Texture targetTexture, headTexture, tailTexture;
@@ -30,6 +53,7 @@ public class BoardDisplayScreen extends ScreenAdapter {
     private int cellSize, topPadding, leftPadding;
     
     private InputProcessor inputProcessor;
+    private EventHandler snakeMovementEventHandler;
   
     public BoardDisplayScreen(EngineHeart engineHeart) {
       this.engineHeart = engineHeart;
@@ -63,7 +87,8 @@ public class BoardDisplayScreen extends ScreenAdapter {
       
       this.spriteBatch = new SpriteBatch();
       
-      this.inputProcessor = new BasicInput(this.engineHeart.board);
+      this.inputProcessor = new BasicInput(this.engineHeart);
+      this.snakeMovementEventHandler = new BasicEventHandler(this.engineHeart);
     }
     
     @Override
@@ -77,6 +102,10 @@ public class BoardDisplayScreen extends ScreenAdapter {
         return;
       }
       
+      long currentTime = Gdx.input.getCurrentEventTime();
+      this.engineHeart.eventDispatch.dispatch(currentTime);
+      
+      
       doOutput();
     }
     
@@ -86,13 +115,14 @@ public class BoardDisplayScreen extends ScreenAdapter {
     public void show() {
       super.show();
       this.engineHeart.inputMultiplexer.addProcessor(this.inputProcessor);
+      this.engineHeart.eventDispatch.addHandler(this.snakeMovementEventHandler);
     }
     
     @Override
     public void dispose() {
-    // TODO Auto-generated method stub
-    super.dispose();
-    this.engineHeart.inputMultiplexer.removeProcessor(this.inputProcessor);
+      this.engineHeart.inputMultiplexer.removeProcessor(this.inputProcessor);
+      this.engineHeart.eventDispatch.removeHandler(this.snakeMovementEventHandler);
+      super.dispose();
     }
     
     
@@ -109,10 +139,10 @@ public class BoardDisplayScreen extends ScreenAdapter {
 
     private void renderBoard(Board board) {
       Pair<Integer, Integer> cellCoordinates = new Pair<>(0, 0);
-      System.out.println("snake: " + this.engineHeart.board.snake.toString());
+      //System.out.println("snake: " + this.engineHeart.board.snake.toString());
       for (int i = 0; i < this.engineHeart.board.snake.size(); i++) {
         Integer cellIndex = this.engineHeart.board.snake.get(i);
-        System.out.println("cellindex: " + cellIndex + " i: " + i);
+        //System.out.println("cellindex: " + cellIndex + " i: " + i);
         CoordinateUtils.setCoordinatesFromCellIndex(this.engineHeart.board.width, cellIndex, cellCoordinates);
         TextureRegion snakeTextureRegion = (i == 0) ? this.headTextureRegion : this.tailTextureRegion;
         int cellPositionX = this.leftPadding + (this.cellSize * cellCoordinates.item1);
@@ -152,16 +182,49 @@ public class BoardDisplayScreen extends ScreenAdapter {
 }
 
 class BasicInput extends InputAdapter {
-  Board board;
+  EngineHeart engineHeart;
   
-  public BasicInput(Board board) {
-    this.board = board;
+  public BasicInput(EngineHeart engineHeart) {
+    this.engineHeart = engineHeart;
   }
   @Override
   public boolean keyDown(int keycode) {
-    // TODO Auto-generated method stub
-    System.out.println("keycode: " + keycode);
-    board.nextHead(board.hasNextHead());
+    long systemMillis = Gdx.input.getCurrentEventTime();
+    Map<String, Object> properties = new HashMap<String, Object>();
+    switch (keycode) {
+      case Keys.UP : { properties = BoardDisplayScreen.PROPERTIES_FACE_UP; break; } 
+      case Keys.DOWN : { properties = BoardDisplayScreen.PROPERTIES_FACE_DOWN; break; }
+      case Keys.LEFT : { properties = BoardDisplayScreen.PROPERTIES_FACE_LEFT; break; }
+      case Keys.RIGHT : { properties = BoardDisplayScreen.PROPERTIES_FACE_RIGHT; break; }
+    }
+      this.engineHeart.eventDispatch.enqueue(BoardDisplayScreen.FACE_EVENT_TYPE, systemMillis, properties);
     return true;
   }
+}
+
+class BasicEventHandler implements EventHandler {
+  
+  EngineHeart engineHeart;
+  public BasicEventHandler(EngineHeart engineHeart) {
+    this.engineHeart = engineHeart;
+  }
+
+  @Override
+  public String forType() {
+    return BoardDisplayScreen.FACE_EVENT_TYPE;
+  }
+
+  @Override
+  public void receive(Event event) {
+    System.out.println("event: " + event);
+    System.out.println("props: " + event.properties);
+    Facing facing = Facing.class.cast(event.properties.get(BoardDisplayScreen.FACING_EVENT_PROPERTY));
+    Board board = this.engineHeart.board;
+    board.facing = facing;
+    int head = board.hasNextHead();
+    if (head != Board.INVALID_CELL_INDEX) {
+      board.nextHead(head);
+    }
+  }
+  
 }

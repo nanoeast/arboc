@@ -1,5 +1,6 @@
 package nanoeast.snake;
 
+import nanoeast.snake.events.EventDispatch;
 import nanoeast.snake.logic.Board;
 import nanoeast.snake.logic.Facing;
 import nanoeast.snake.screens.BoardDisplayScreen;
@@ -14,6 +15,7 @@ public class EngineHeart extends Game {
     
     public AssetManager assetManager;
     public InputMultiplexer inputMultiplexer;
+    public EventDispatch eventDispatch;
     public Board board;
     public int width, height;
     
@@ -26,6 +28,7 @@ public class EngineHeart extends Game {
     public EngineHeart(int boardWidth, int boardHeight) {
       this.assetManager = new AssetManager();
       this.inputMultiplexer = new InputMultiplexer();
+      this.eventDispatch = new EventDispatch();
       
       this.board = new Board(boardWidth, boardHeight);
       this.board.createSnake(0, 0, 4, Facing.RIGHT);

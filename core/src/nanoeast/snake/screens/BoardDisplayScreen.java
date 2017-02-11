@@ -1,6 +1,8 @@
 package nanoeast.snake.screens;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import nanoeast.snake.EngineHeart;
@@ -10,6 +12,10 @@ import nanoeast.snake.logic.Board;
 import nanoeast.snake.logic.CoordinateUtils;
 import nanoeast.snake.logic.Facing;
 import nanoeast.snake.logic.Pair;
+import nanoeast.snake.screens.boarddisplay.ChangeFaceEventHandler;
+import nanoeast.snake.screens.boarddisplay.MoveForwardEventHandler;
+import nanoeast.snake.screens.boarddisplay.MoveForwardUpdateProcess;
+import nanoeast.snake.triggers.UpdateProcess;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input.Keys;
@@ -22,6 +28,7 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.utils.TimeUtils;
 
 public class BoardDisplayScreen extends ScreenAdapter {
 
@@ -36,6 +43,7 @@ public class BoardDisplayScreen extends ScreenAdapter {
 
     public static final String FACING_EVENT_PROPERTY = "facing";
     public static final String FACE_EVENT_TYPE = "faceEvent";
+    public static final String MOVE_EVENT_TYPE = "moveEvent";
     
     static {
       PROPERTIES_FACE_UP.put(BoardDisplayScreen.FACING_EVENT_PROPERTY, Facing.UP);
@@ -53,7 +61,8 @@ public class BoardDisplayScreen extends ScreenAdapter {
     private int cellSize, topPadding, leftPadding;
     
     private InputProcessor inputProcessor;
-    private EventHandler snakeMovementEventHandler;
+    private List<EventHandler> gameEventHandlers;
+    private List<UpdateProcess> gameUpdateProcesses;
   
     public BoardDisplayScreen(EngineHeart engineHeart) {
       this.engineHeart = engineHeart;
@@ -88,7 +97,12 @@ public class BoardDisplayScreen extends ScreenAdapter {
       this.spriteBatch = new SpriteBatch();
       
       this.inputProcessor = new BasicInput(this.engineHeart);
-      this.snakeMovementEventHandler = new BasicEventHandler(this.engineHeart);
+      this.gameEventHandlers = new ArrayList<EventHandler>();
+      this.gameEventHandlers.add(new MoveForwardEventHandler(this.engineHeart));
+      this.gameEventHandlers.add(new ChangeFaceEventHandler(this.engineHeart));
+      
+      this.gameUpdateProcesses = new ArrayList<UpdateProcess>();
+      this.gameUpdateProcesses.add(new MoveForwardUpdateProcess(this.engineHeart, 50));
     }
     
     @Override
@@ -102,26 +116,37 @@ public class BoardDisplayScreen extends ScreenAdapter {
         return;
       }
       
-      long currentTime = Gdx.input.getCurrentEventTime();
-      this.engineHeart.eventDispatch.dispatch(currentTime);
+      // advance all running update processes
       
+      long differenceInMillis = Math.round(delta * 1000d);
+      for (UpdateProcess process : this.gameUpdateProcesses) {
+        process.update(differenceInMillis);
+      }
+      
+      // process all events when we can.
+      long currentTime = TimeUtils.nanoTime();
+      this.engineHeart.eventDispatch.dispatch(currentTime);
       
       doOutput();
     }
-    
-    
     
     @Override
     public void show() {
       super.show();
       this.engineHeart.inputMultiplexer.addProcessor(this.inputProcessor);
-      this.engineHeart.eventDispatch.addHandler(this.snakeMovementEventHandler);
+      for (EventHandler handler : this.gameEventHandlers) {
+        this.engineHeart.eventDispatch.addHandler(handler);
+      }
+      
+      
     }
     
     @Override
     public void dispose() {
       this.engineHeart.inputMultiplexer.removeProcessor(this.inputProcessor);
-      this.engineHeart.eventDispatch.removeHandler(this.snakeMovementEventHandler);
+      for (EventHandler handler : this.gameEventHandlers) {
+        this.engineHeart.eventDispatch.removeHandler(handler);
+      }
       super.dispose();
     }
     
@@ -139,10 +164,8 @@ public class BoardDisplayScreen extends ScreenAdapter {
 
     private void renderBoard(Board board) {
       Pair<Integer, Integer> cellCoordinates = new Pair<>(0, 0);
-      //System.out.println("snake: " + this.engineHeart.board.snake.toString());
       for (int i = 0; i < this.engineHeart.board.snake.size(); i++) {
         Integer cellIndex = this.engineHeart.board.snake.get(i);
-        //System.out.println("cellindex: " + cellIndex + " i: " + i);
         CoordinateUtils.setCoordinatesFromCellIndex(this.engineHeart.board.width, cellIndex, cellCoordinates);
         TextureRegion snakeTextureRegion = (i == 0) ? this.headTextureRegion : this.tailTextureRegion;
         int cellPositionX = this.leftPadding + (this.cellSize * cellCoordinates.item1);
@@ -210,14 +233,16 @@ class BasicEventHandler implements EventHandler {
   }
 
   @Override
+  public String forKey() {
+    return "basic";
+  }
+  @Override
   public String forType() {
     return BoardDisplayScreen.FACE_EVENT_TYPE;
   }
 
   @Override
   public void receive(Event event) {
-    System.out.println("event: " + event);
-    System.out.println("props: " + event.properties);
     Facing facing = Facing.class.cast(event.properties.get(BoardDisplayScreen.FACING_EVENT_PROPERTY));
     Board board = this.engineHeart.board;
     board.facing = facing;
@@ -228,3 +253,7 @@ class BasicEventHandler implements EventHandler {
   }
   
 }
+
+
+
+

@@ -1,10 +1,10 @@
 package nanoeast.snake.events;
 
-import java.util.Set;
 
 public interface EventHandler {
   
   String forType();
+  String forKey();
   void receive(Event event);
 
 }

@@ -13,6 +13,7 @@ import nanoeast.snake.logic.CoordinateUtils;
 import nanoeast.snake.logic.Facing;
 import nanoeast.snake.logic.Pair;
 import nanoeast.snake.screens.boarddisplay.ChangeFaceEventHandler;
+import nanoeast.snake.screens.boarddisplay.GameOverEventHandler;
 import nanoeast.snake.screens.boarddisplay.MoveForwardEventHandler;
 import nanoeast.snake.screens.boarddisplay.MoveForwardUpdateProcess;
 import nanoeast.snake.triggers.UpdateProcess;
@@ -44,6 +45,7 @@ public class BoardDisplayScreen extends ScreenAdapter {
     public static final String FACING_EVENT_PROPERTY = "facing";
     public static final String FACE_EVENT_TYPE = "faceEvent";
     public static final String MOVE_EVENT_TYPE = "moveEvent";
+    public static final String GAME_OVER_EVENT_TYPE = "gameOverEventType";
     
     static {
       PROPERTIES_FACE_UP.put(BoardDisplayScreen.FACING_EVENT_PROPERTY, Facing.UP);
@@ -100,6 +102,7 @@ public class BoardDisplayScreen extends ScreenAdapter {
       this.gameEventHandlers = new ArrayList<EventHandler>();
       this.gameEventHandlers.add(new MoveForwardEventHandler(this.engineHeart));
       this.gameEventHandlers.add(new ChangeFaceEventHandler(this.engineHeart));
+      this.gameEventHandlers.add(new GameOverEventHandler(this.engineHeart));
       
       this.gameUpdateProcesses = new ArrayList<UpdateProcess>();
       this.gameUpdateProcesses.add(new MoveForwardUpdateProcess(this.engineHeart, 50));
@@ -137,8 +140,6 @@ public class BoardDisplayScreen extends ScreenAdapter {
       for (EventHandler handler : this.gameEventHandlers) {
         this.engineHeart.eventDispatch.addHandler(handler);
       }
-      
-      
     }
     
     @Override
@@ -147,6 +148,10 @@ public class BoardDisplayScreen extends ScreenAdapter {
       for (EventHandler handler : this.gameEventHandlers) {
         this.engineHeart.eventDispatch.removeHandler(handler);
       }
+      if (this.spriteBatch != null) {
+        this.spriteBatch.dispose();
+      }
+      this.disposeTextures();
       super.dispose();
     }
     
@@ -201,7 +206,18 @@ public class BoardDisplayScreen extends ScreenAdapter {
       }
       this.texturesLoaded = true;
     }
-
+    
+    public void disposeTextures() {
+      if (this.headTexture != null) {
+        this.headTexture.dispose();
+      }
+      if (this.tailTexture != null) {
+        this.tailTexture.dispose();
+      }
+      if (this.targetTexture != null) {
+        this.targetTexture.dispose();
+      }
+    }
 }
 
 class BasicInput extends InputAdapter {

@@ -11,16 +11,9 @@ import nanoeast.snake.logic.Facing;
 import nanoeast.snake.logic.Pair;
 import nanoeast.snake.screens.BoardDisplayScreen;
 
-import com.badlogic.gdx.utils.Pool;
-
 public class ChangeFaceEventHandler implements EventHandler {
   
   EngineHeart engineHeart;
-  Pool<Pair<Integer, Integer>> pairPool = new Pool<Pair<Integer,Integer>>() {
-    protected nanoeast.snake.logic.Pair<Integer,Integer> newObject() {
-      return new Pair<Integer, Integer>(0, 0);
-    }
-  };
   
   public ChangeFaceEventHandler(EngineHeart engineHeart) {
     this.engineHeart = engineHeart;
@@ -46,13 +39,13 @@ public class ChangeFaceEventHandler implements EventHandler {
       if (snake.size() > 1) {
         Integer head = snake.get(0);
         Integer neck = snake.get(1);
-        Pair<Integer, Integer> nowPair = this.pairPool.obtain();
-        Pair<Integer, Integer> thenPair = this.pairPool.obtain();
+        Pair<Integer, Integer> nowPair = this.engineHeart.pairPool.obtain();
+        Pair<Integer, Integer> thenPair = this.engineHeart.pairPool.obtain();
         CoordinateUtils.setCoordinatesFromCellIndex(board.width, head, nowPair);
         CoordinateUtils.setCoordinatesFromCellIndex(board.width, neck, thenPair);
         invalid = facing.isInvalid(thenPair, nowPair);
-        this.pairPool.free(nowPair);
-        this.pairPool.free(thenPair);
+        this.engineHeart.pairPool.free(nowPair);
+        this.engineHeart.pairPool.free(thenPair);
       }
       if (!invalid) {
         board.facing = facing;

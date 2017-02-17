@@ -1,8 +1,6 @@
 package nanoeast.snake.events;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class EventDispatch {
@@ -36,11 +34,13 @@ public class EventDispatch {
   }
   
   public void enqueue(String type, long systemMillis, Map<String, Object> properties) {
+    this.ensureHandlerStorageForType(type);
     this.heap.push(type, properties, systemMillis);
   }
   
   public void dispatch(long systemMillisThreshold) {
     this.heap.takeUntil(systemMillisThreshold, (Event event) -> {
+      this.ensureHandlerStorageForType(event.type);
       Map<String, EventHandler> handlers = this.handlersPerType.get(event.type);
       Map<String, EventHandler> handlersCopy = new HashMap<String, EventHandler>(handlers);
       for (EventHandler handler : handlersCopy.values()) {

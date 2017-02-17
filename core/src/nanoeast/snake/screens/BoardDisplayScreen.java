@@ -220,7 +220,7 @@ class BasicInput extends InputAdapter {
       case Keys.LEFT : { properties = BoardDisplayScreen.PROPERTIES_FACE_LEFT; break; }
       case Keys.RIGHT : { properties = BoardDisplayScreen.PROPERTIES_FACE_RIGHT; break; }
     }
-      this.engineHeart.eventDispatch.enqueue(BoardDisplayScreen.FACE_EVENT_TYPE, systemMillis, properties);
+    this.engineHeart.eventDispatch.enqueue(BoardDisplayScreen.FACE_EVENT_TYPE, systemMillis, properties);
     return true;
   }
 }

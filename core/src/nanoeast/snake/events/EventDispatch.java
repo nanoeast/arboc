@@ -40,14 +40,12 @@ public class EventDispatch {
   }
   
   public void dispatch(long systemMillisThreshold) {
-    List<Event> events = this.heap.takeUntil(systemMillisThreshold);
-    for (Event event : events) {
+    this.heap.takeUntil(systemMillisThreshold, (Event event) -> {
       Map<String, EventHandler> handlers = this.handlersPerType.get(event.type);
       Map<String, EventHandler> handlersCopy = new HashMap<String, EventHandler>(handlers);
       for (EventHandler handler : handlersCopy.values()) {
         handler.receive(event); // TODO: Add veto capability?
-      }
-    }
+      }      
+    });
   }
-
 }

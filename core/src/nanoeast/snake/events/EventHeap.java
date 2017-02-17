@@ -5,6 +5,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.function.Consumer;
 
 import com.badlogic.gdx.utils.Pool;
 
@@ -40,12 +41,7 @@ public class EventHeap {
     event.systemMillis = systemMillis;
     this.heap.offer(event);
   }
-  
-  public Event pop() {
-    return this.heap.poll();
-  }
-  
-  public List<Event> takeUntil(long systemMillisThreshold) {
+  public void takeUntil(long systemMillisThreshold, Consumer<Event> eventConsumer) {
     List<Event> events = new ArrayList<Event>();
     boolean hasMoreEvents = true;
     while (hasMoreEvents) {
@@ -55,7 +51,10 @@ public class EventHeap {
         hasMoreEvents = false;
       }
     }
-    return events;
+    for (Event event : events) {
+      eventConsumer.accept(event);
+      this.pool.free(event);
+    }
   }
   
 }
